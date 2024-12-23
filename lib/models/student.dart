@@ -11,6 +11,7 @@ const Map<Department, IconData> departmentIcons = {
 };
 
 class Student {
+  final String id;
   final String firstName;
   final String lastName;
   final Department department;
@@ -18,6 +19,7 @@ class Student {
   final Gender gender;
 
   Student({
+    required this.id,
     required this.firstName,
     required this.lastName,
     required this.department,

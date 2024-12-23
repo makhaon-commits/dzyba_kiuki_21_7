@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'widgets/students.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,11 +11,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Список студентів',
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.grey.shade100,
+        primarySwatch: Colors.blue,
         fontFamily: 'Roboto',
       ),
-      home: StudentsScreen(),
+      home: const StudentsScreen(),
     );
   }
 }
