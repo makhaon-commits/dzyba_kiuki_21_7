@@ -21,12 +21,11 @@ class StudentItem extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border.all(color: borderColor, width: 2),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: borderColor.withOpacity(0.5),
-            blurRadius: 10,
+            color: borderColor.withOpacity(0.4),
+            blurRadius: 8,
             offset: const Offset(2, 2),
           ),
         ],
@@ -36,18 +35,18 @@ class StudentItem extends StatelessWidget {
           ClipPath(
             clipper: DiamondClipper(),
             child: Container(
-              width: 60,
-              height: 60,
-              color: borderColor.withOpacity(0.2),
+              width: 50,
+              height: 50,
+              color: borderColor.withOpacity(0.3),
               alignment: Alignment.center,
               child: Icon(
-                departmentIcons[student.department],
-                size: 30,
+                student.department.icon, // Используем поле icon из Department
+                size: 28,
                 color: borderColor,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,10 +59,12 @@ class StudentItem extends StatelessWidget {
                     color: borderColor,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   student.department.name,
                   style: TextStyle(
                     fontSize: 14,
+                    fontStyle: FontStyle.italic,
                     color: borderColor.withOpacity(0.8),
                   ),
                 ),
@@ -74,7 +75,7 @@ class StudentItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: borderColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '${student.grade}',

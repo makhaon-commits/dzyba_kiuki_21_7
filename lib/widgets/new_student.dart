@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/department.dart';
 import '../models/student.dart';
+import '../providers/departments_provider.dart';
 
-class NewStudent extends StatefulWidget {
+class NewStudent extends ConsumerStatefulWidget {
   final Student? existingStudent;
   final Function(Student) onSave;
 
   const NewStudent({super.key, required this.onSave, this.existingStudent});
 
   @override
-  State<NewStudent> createState() => _NewStudentState();
+  ConsumerState<NewStudent> createState() => _NewStudentState();
 }
 
-class _NewStudentState extends State<NewStudent> {
+class _NewStudentState extends ConsumerState<NewStudent> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   Department? _selectedDepartment;
@@ -51,31 +54,21 @@ class _NewStudentState extends State<NewStudent> {
     Navigator.of(context).pop();
   }
 
-  String _genderToReadableText(Gender gender) {
-    return gender == Gender.male ? 'Чоловік' : 'Жінка';
-  }
-
-  Gender _readableTextToGender(String text) {
-    return text == 'Чоловік' ? Gender.male : Gender.female;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = Colors.grey.shade100;
-    final borderColor = Colors.deepPurple.shade300;
+    const borderColor = Colors.deepPurpleAccent;
+    final departments = ref.watch(departmentsProvider);
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
-              color: borderColor.withOpacity(0.3),
+              color: Colors.grey.withOpacity(0.3),
               blurRadius: 10,
               offset: const Offset(0, -3),
             ),
@@ -85,9 +78,7 @@ class _NewStudentState extends State<NewStudent> {
           child: Column(
             children: [
               Text(
-                widget.existingStudent == null
-                    ? 'Додати Студента'
-                    : 'Редагувати Студента',
+                widget.existingStudent == null ? 'Додати Студента' : 'Редагувати Студента',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -95,49 +86,27 @@ class _NewStudentState extends State<NewStudent> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildInputField(
-                controller: _firstNameController,
-                label: 'Ім’я',
-                borderColor: borderColor,
-              ),
+              _buildInputField(_firstNameController, 'Ім’я', borderColor),
               const SizedBox(height: 16),
-              _buildInputField(
-                controller: _lastNameController,
-                label: 'Прізвище',
-                borderColor: borderColor,
-              ),
+              _buildInputField(_lastNameController, 'Прізвище', borderColor),
               const SizedBox(height: 16),
               _buildDropdownField<Department>(
                 value: _selectedDepartment,
                 label: 'Факультет',
-                items: Department.values,
+                items: departments,
                 borderColor: borderColor,
+                itemToString: (department) => department.name,
                 onChanged: (value) => setState(() => _selectedDepartment = value),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedGender != null ? _genderToReadableText(_selectedGender!) : null,
-                decoration: InputDecoration(
-                  labelText: 'Стать',
-                  labelStyle: TextStyle(color: borderColor),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                ),
-                items: ['Чоловік', 'Жінка'].map((gender) {
-                  return DropdownMenuItem(
-                    value: gender,
-                    child: Text(gender),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedGender = value == 'Чоловік' ? Gender.male : Gender.female);
-                },
+              _buildDropdownField<String>(
+                value: _selectedGender != null ? _genderToUkrainian(_selectedGender!) : null,
+                label: 'Стать',
+                items: ['Чоловік', 'Жінка'],
+                borderColor: borderColor,
+                itemToString: (item) => item,
+                onChanged: (value) =>
+                    setState(() => _selectedGender = _ukrainianToGender(value!)),
               ),
               const SizedBox(height: 16),
               Slider(
@@ -146,7 +115,6 @@ class _NewStudentState extends State<NewStudent> {
                 max: 100,
                 divisions: 100,
                 label: 'Оцінка: $_grade',
-                activeColor: borderColor,
                 onChanged: (value) => setState(() => _grade = value.toInt()),
               ),
               const SizedBox(height: 20),
@@ -157,19 +125,8 @@ class _NewStudentState extends State<NewStudent> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 50,
-                    vertical: 12,
-                  ),
                 ),
-                child: const Text(
-                  'Зберегти',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: const Text('Зберегти'),
               ),
             ],
           ),
@@ -178,22 +135,16 @@ class _NewStudentState extends State<NewStudent> {
     );
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String label,
-    required Color borderColor,
-  }) {
+  Widget _buildInputField(
+      TextEditingController controller, String label, Color borderColor) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: borderColor),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: borderColor),
         ),
       ),
@@ -205,51 +156,32 @@ class _NewStudentState extends State<NewStudent> {
     required String label,
     required List<T> items,
     required Color borderColor,
+    required String Function(T) itemToString,
     required ValueChanged<T?> onChanged,
   }) {
     return DropdownButtonFormField<T>(
-      value: value,
+      value: items.contains(value) ? value : null,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: borderColor),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: borderColor),
         ),
       ),
       items: items.map((item) {
-        String displayText;
-        if (item is Department) {
-          displayText = _getDepartmentName(item);
-        } else {
-          displayText = item.toString();
-        }
-        return DropdownMenuItem(
+        return DropdownMenuItem<T>(
           value: item,
-          child: Text(displayText),
+          child: Text(itemToString(item)),
         );
       }).toList(),
       onChanged: onChanged,
     );
   }
 
-  String _getDepartmentName(Department department) {
-    switch (department) {
-      case Department.finance:
-        return 'Фінанси';
-      case Department.law:
-        return 'Юриспруденція';
-      case Department.it:
-        return 'ІТ';
-      case Department.medical:
-        return 'Медицина';
-      default:
-        return '';
-    }
+  String _genderToUkrainian(Gender gender) {
+    return gender == Gender.male ? 'Чоловік' : 'Жінка';
   }
 
+  Gender _ukrainianToGender(String text) {
+    return text == 'Чоловік' ? Gender.male : Gender.female;
+  }
 }
