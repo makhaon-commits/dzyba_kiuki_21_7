@@ -3,61 +3,80 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/department.dart';
 import '../models/student.dart';
 import '../providers/departments_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/students_provider.dart';
+
 
 class NewStudent extends ConsumerStatefulWidget {
-  final Student? existingStudent;
-  final Function(Student) onSave;
+  const NewStudent({
+    super.key,
+    this.studentIndex
+  });
 
-  const NewStudent({super.key, required this.onSave, this.existingStudent});
+  final int? studentIndex;
 
   @override
-  ConsumerState<NewStudent> createState() => _NewStudentState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _NewStudentState();
 }
 
 class _NewStudentState extends ConsumerState<NewStudent> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  Department? _selectedDepartment;
-  Gender? _selectedGender;
+  Department _selectedDepartment = departments[0];
+  Gender _selectedGender = Gender.female;
   int _grade = 50;
 
   @override
   void initState() {
     super.initState();
-    if (widget.existingStudent != null) {
-      _firstNameController.text = widget.existingStudent!.firstName;
-      _lastNameController.text = widget.existingStudent!.lastName;
-      _selectedDepartment = widget.existingStudent!.department;
-      _selectedGender = widget.existingStudent!.gender;
-      _grade = widget.existingStudent!.grade;
+    if (widget.studentIndex != null) {
+      final student = ref.read(studentsProvider).list[widget.studentIndex!];
+      _firstNameController.text = student.firstName;
+      _lastNameController.text = student.lastName;
+      _selectedGender = student.gender;
+      _selectedDepartment = student.department;
+      _grade = student.grade;
     }
   }
 
-  void _save() {
+  void _save() async {
     if (_firstNameController.text.isEmpty ||
-        _lastNameController.text.isEmpty ||
-        _selectedDepartment == null ||
-        _selectedGender == null) {
+        _lastNameController.text.isEmpty) {
       return;
     }
 
-    final newStudent = Student(
-      id: widget.existingStudent?.id ?? DateTime.now().toString(),
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      department: _selectedDepartment!,
-      grade: _grade,
-      gender: _selectedGender!,
-    );
+    if (widget.studentIndex == null)  {
+      await ref.read(studentsProvider.notifier).addStudent(
+            _firstNameController.text.trim(),
+            _lastNameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            _grade,
+          );
+    } else {
+      await ref.read(studentsProvider.notifier).editStudent(
+            widget.studentIndex!,
+            _firstNameController.text.trim(),
+            _lastNameController.text.trim(),
+            _selectedDepartment,
+            _selectedGender,
+            _grade,
+          );
+    }
 
-    widget.onSave(newStudent);
-    Navigator.of(context).pop();
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); 
   }
 
   @override
   Widget build(BuildContext context) {
     const borderColor = Colors.deepPurpleAccent;
-    final departments = ref.watch(departmentsProvider);
+    final departmentsP = ref.watch(departmentsProvider);
+    final state = ref.watch(studentsProvider);
+
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -78,8 +97,8 @@ class _NewStudentState extends ConsumerState<NewStudent> {
           child: Column(
             children: [
               Text(
-                widget.existingStudent == null ? 'Додати Студента' : 'Редагувати Студента',
-                style: TextStyle(
+                widget.studentIndex == null ? 'Додати Студента' : 'Редагувати Студента',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: borderColor,
@@ -93,10 +112,10 @@ class _NewStudentState extends ConsumerState<NewStudent> {
               _buildDropdownField<Department>(
                 value: _selectedDepartment,
                 label: 'Факультет',
-                items: departments,
+                items: departmentsP,
                 borderColor: borderColor,
                 itemToString: (department) => department.name,
-                onChanged: (value) => setState(() => _selectedDepartment = value),
+                onChanged: (value) => setState(() => _selectedDepartment = value!),
               ),
               const SizedBox(height: 16),
               _buildDropdownField<String>(

@@ -12,8 +12,12 @@ class DepartmentsScreen extends ConsumerWidget {
     final departments = ref.watch(departmentsProvider);
     final students = ref.watch(studentsProvider);
 
+    if (students.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final departmentsWithCounts = departments.map((dept) {
-      final studentCount = students
+      final studentCount = students.list
           .where((student) => student.department.id == dept.id)
           .length;
 

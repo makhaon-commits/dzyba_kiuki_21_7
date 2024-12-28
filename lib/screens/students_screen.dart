@@ -12,27 +12,22 @@ class StudentsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final students = ref.watch(studentsProvider);
 
-    void showNewStudentForm({Student? student}) {
+    if (students.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    void showNewStudentForm({int? index}) {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         builder: (_) {
-          return NewStudent(
-            existingStudent: student,
-            onSave: (updatedStudent) {
-              if (student != null) {
-                ref.read(studentsProvider.notifier).updateStudent(updatedStudent);
-              } else {
-                ref.read(studentsProvider.notifier).addStudent(updatedStudent);
-              }
-            },
-          );
+          return NewStudent(studentIndex: index,);
         },
       );
     }
 
-    void deleteStudent(Student student) {
-      ref.read(studentsProvider.notifier).deleteStudent(student.id);
+    void deleteStudent(Student student, int index) {
+      ref.read(studentsProvider.notifier).removeStudent(index);
       final container = ProviderScope.containerOf(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -40,18 +35,22 @@ class StudentsScreen extends ConsumerWidget {
           action: SnackBarAction(
             label: 'Скасувати',
             onPressed: () {
-              container.read(studentsProvider.notifier).restoreStudent(student);
+              container.read(studentsProvider.notifier).undo();
             },
           ),
         ),
-      );
+      ).closed.then((value) {
+        if (value != SnackBarClosedReason.action) {
+          ref.read(studentsProvider.notifier).removeLastFromDb();
+        }
+      });
     }
 
     return Scaffold(
       body: ListView.builder(
-        itemCount: students.length,
+        itemCount: students.list.length,
         itemBuilder: (ctx, index) {
-          final student = students[index];
+          final student = students.list[index];
           return Dismissible(
             key: ValueKey(student.id),
             direction: DismissDirection.endToStart,
@@ -77,9 +76,9 @@ class StudentsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            onDismissed: (_) => deleteStudent(student),
+            onDismissed: (_) => deleteStudent(student, index),
             child: InkWell(
-              onTap: () => showNewStudentForm(student: student),
+              onTap: () => showNewStudentForm(index: index),
               child: StudentItem(student: student),
             ),
           );

@@ -40,7 +40,7 @@ class StudentItem extends StatelessWidget {
               color: borderColor.withOpacity(0.3),
               alignment: Alignment.center,
               child: Icon(
-                student.department.icon, // Используем поле icon из Department
+                student.department.icon, 
                 size: 28,
                 color: borderColor,
               ),
